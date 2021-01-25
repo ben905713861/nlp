@@ -1,31 +1,29 @@
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from tensorflow.keras.layers import Flatten, Dense
 import numpy as np
 
 (train_images, train_labels), (test_images, test_labels) = keras.datasets.mnist.load_data()
-
-# 输出结果
-# img1 = train_images[1]
-# for row in img1:
-#     for col in row:
-#         if col == 0:
-#             print(0, end="")
-#         else:
-#             print(1, end="")
-#     print("")
-# print(train_labels[1])
-# exit()
-
 train_images, test_images = train_images / 255.0, test_images / 255.0
+
+# 60000张图片（每张图片是28*28的矩阵），转换为60000个1*784矩阵
+train_images = train_images.reshape(60000, -1)
+# 10000张图片（每张图片是28*28的矩阵），转换为10000个1*784矩阵
+test_images = test_images.reshape(10000, -1)
 
 
 # MLP
 model = keras.Sequential([
-    Flatten(input_shape=(28, 28)),
-    Dense(128, activation='relu'),
-    Dense(10, activation='softmax')
+    # 输入层
+    layers.Flatten(input_shape=(784, )),
+    # units该层的神经元数; activation激活函数
+    layers.Dense(256, activation=tf.nn.relu),
+    # 输出层有10个，分别为0-9的数字，因为是多分类任务，我们选择softmax作为激活函数
+    layers.Dense(10, activation=tf.nn.softmax)
 ])
+
+# 查看模型
+model.summary()
 
 # model = keras.Sequential()
 # # 第1层卷积，卷积核大小为3*3，32个，28*28为待训练图片的大小
@@ -41,14 +39,17 @@ model = keras.Sequential([
 # model.add(layers.Dense(64, activation='relu'))
 # model.add(layers.Dense(10, activation='softmax'))
 
-
+# optimizer优化器=adam
+# loss损失函数=sparse_categorical_crossentropy交叉熵损失函数
+# metrics评估标准=sparse_categorical_accuracy稀疏分类准确率函数
 model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
-              metrics=['acc'])
+              metrics=['sparse_categorical_accuracy'])
 
-model.fit(train_images, train_labels, epochs=10)
+# 训练10轮，每轮64张图
+model.fit(train_images, train_labels, batch_size=64, epochs=10)
 
-
+# verbose输出日志等级，0=不日志志志
 test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
 print('Test acc:', test_acc)
 

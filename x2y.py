@@ -28,7 +28,7 @@ for i in range(1000):
     # 创建steplen个随机点，大致符合y = 2 * x  + (+/-)0.1
     steplen = 2
     xGroup = np.random.randint(0, 100, steplen)
-    yGroup = xGroup * 2 + (np.random.rand(steplen)-0.5)/10
+    yGroup = xGroup * 2 + np.random.randn(steplen)/10
     feed = {
         x: xGroup,
         y_: yGroup,
