@@ -15,7 +15,8 @@ y_ = tf.compat.v1.placeholder(tf.float32)
 # 方差 cost = [(y1 - _y1)^2 + ... + (yn - _yn)^2] /n
 cost = tf.reduce_mean(tf.pow(y_ - y, 2))
 # 梯度下降模型
-train_step = tf.compat.v1.train.GradientDescentOptimizer(0.0001).minimize(cost)
+# train_step = tf.compat.v1.train.GradientDescentOptimizer(0.0001).minimize(cost)
+train_step = tf.compat.v1.train.AdadeltaOptimizer(1).minimize(cost)
 
 
 # 建立session

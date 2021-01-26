@@ -49,11 +49,14 @@ model.compile(optimizer='adam',
 # 训练10轮，每轮64张图
 model.fit(train_images, train_labels, batch_size=64, epochs=10)
 
-# verbose输出日志等级，0=不日志志志
+# verbose输出日志等级，0=不开启日志
 test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
 print('Test acc:', test_acc)
 
 
+errorCount = 0
 predictions = model.predict(test_images)
-print('预测值:', np.argmax(predictions[0]))
-print('真实值:', test_labels[0])
+for i in range(len(predictions)):
+    if np.argmax(predictions[i]) != test_labels[i]:
+        errorCount += 1
+print((len(test_images) - errorCount) / len(test_images))

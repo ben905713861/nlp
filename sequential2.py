@@ -12,7 +12,8 @@ b = tf.Variable(tf.zeros([10]))
 y = tf.nn.softmax(tf.matmul(x, W) + b)
 label = tf.compat.v1.placeholder(tf.float32, [None, 10])
 loss = -tf.reduce_sum(label * tf.compat.v1.log(y + 1e-10))
-train_step = tf.compat.v1.train.GradientDescentOptimizer(0.001).minimize(loss)
+# train_step = tf.compat.v1.train.GradientDescentOptimizer(0.001).minimize(loss)
+train_step = tf.compat.v1.train.AdadeltaOptimizer(1).minimize(loss)
 
 
 # 建立session
@@ -22,9 +23,10 @@ sess.run(tf.compat.v1.global_variables_initializer())
 
 # 获取训练/测试用的手写图片与答案
 (train_images, train_labels), (test_images, test_labels) = keras.datasets.mnist.load_data()
+train_images, test_images = train_images / 255.0, test_images / 255.0
 
 # 训练2000次
-for i in range(2000):
+for i in range(3000):
     train_images_size = len(train_images)
     imgs = []
     label_answers = []
@@ -34,8 +36,6 @@ for i in range(2000):
         randomIndex = np.random.randint(train_images_size)
         # 训练用的图片 二维转1维
         img = train_images[randomIndex].ravel()
-        # one-hot编码
-        img[img > 10] = 1
         imgs.append(img)
         
         # 答案 one-hot编码
@@ -61,8 +61,6 @@ errorCount = 0
 for i in range(10000):
     # 测试用的图片 二维转1维
     img = test_images[i].ravel()
-    # one-hot编码
-    img[img > 10] = 1
     img = np.array([img])
     
     feed = {
@@ -74,8 +72,8 @@ for i in range(10000):
     
     if test_result != test_labels[i]:
         errorCount += 1
-        test_image = test_images[i]
-        test_image[test_image > 0] = 1
+#         test_image = test_images[i]
+#         test_image[test_image > 0] = 1
 #         print(test_image)
 #         print(test_result)
 #         print(test_labels[i])
