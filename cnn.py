@@ -17,9 +17,9 @@ model = keras.Sequential([
     # 输入层
     layers.Flatten(input_shape=(784, )),
     # units该层的神经元数; activation激活函数
-    layers.Dense(256, activation=tf.nn.relu),
+    layers.Dense(units=256, activation=tf.nn.relu),
     # 输出层有10个，分别为0-9的数字，因为是多分类任务，我们选择softmax作为激活函数
-    layers.Dense(10, activation=tf.nn.softmax)
+    layers.Dense(units=10, activation=tf.nn.softmax)
 ])
 
 # 查看模型

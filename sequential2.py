@@ -7,13 +7,13 @@ tf.compat.v1.disable_eager_execution()
 # 建立图
 x = tf.compat.v1.placeholder(tf.float32, [None, 784])
 # 784 * 10 逻辑回归神经网络
-W = tf.Variable(tf.zeros([784, 10]))
+W = tf.Variable(tf.ones([784, 10]))
 b = tf.Variable(tf.zeros([10]))
 y = tf.nn.softmax(tf.matmul(x, W) + b)
 label = tf.compat.v1.placeholder(tf.float32, [None, 10])
 loss = -tf.reduce_sum(label * tf.compat.v1.log(y + 1e-10))
-# train_step = tf.compat.v1.train.GradientDescentOptimizer(0.001).minimize(loss)
-train_step = tf.compat.v1.train.AdadeltaOptimizer(1).minimize(loss)
+train_step = tf.compat.v1.train.GradientDescentOptimizer(0.001).minimize(loss)
+# train_step = tf.compat.v1.train.AdadeltaOptimizer(1).minimize(loss)
 
 
 # 建立session
