@@ -12,12 +12,16 @@ x1 = x
 
 # 784 * 256 逻辑回归神经网络
 W1 = tf.Variable(tf.random.truncated_normal([784, 256], stddev=0.5))
+# W1 = tf.Variable(tf.compat.v1.random_normal([784, 256], stddev=0.5), dtype=tf.float32)
 b1 = tf.Variable(tf.zeros([256]))
+# b1 = tf.Variable(0, dtype=tf.float32)
 y1 = tf.nn.relu(tf.matmul(x1, W1) + b1)
 
 # 256 * 10 逻辑回归神经网络
 W2 = tf.Variable(tf.random.truncated_normal([256, 10], stddev=0.5))
+# W2 = tf.Variable(tf.compat.v1.random_normal([256, 10], stddev=0.5), dtype=tf.float32)
 b2 = tf.Variable(tf.zeros([10]))
+# b2 = tf.Variable(0, dtype=tf.float32)
 y2 = tf.nn.softmax(tf.matmul(y1, W2) + b2)
 
 y = y2
@@ -26,6 +30,8 @@ label = tf.compat.v1.placeholder(tf.float32, [None, 10])
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = y, labels = label))
 # train_step = tf.compat.v1.train.GradientDescentOptimizer(0.001).minimize(loss)
 train_step = tf.compat.v1.train.AdamOptimizer().minimize(loss)
+# train_step = tf.compat.v1.train.AdagradOptimizer(0.3).minimize(loss)
+
 train_result = tf.equal(y, label)
 train_succ_rate = tf.reduce_mean(tf.cast(train_result, "float"))
 
@@ -45,17 +51,13 @@ def check():
         # 测试用的图片 二维转1维
         img = test_images[i].ravel()
         img = np.array([img])
-        
         feed = {
             x: img,
         }
-        
         _y = sess.run(y, feed_dict=feed)
         test_result = np.argmax(_y, 1)[0]
-        
         if test_result == test_labels[i]:
             succCount += 1
-    
     print("succ : %.4f" % (succCount/10000.0))
 
 # 训练10轮
@@ -82,7 +84,8 @@ for h in range(20):
         }
         
         # 训练
-        (_train_step, _loss, _x, _y) = sess.run([train_step, loss, x, y], feed_dict=feed)
+        (_train_step, _loss, _x, _y, _b2) = sess.run([train_step, loss, x, y, b2], feed_dict=feed)
+#         print(_b2)
 #         print(_x)
 #         print(_y)
 #         print(_loss)
@@ -90,5 +93,5 @@ for h in range(20):
     print('第%5d轮，当前loss：%.6f' % (h + 1, _loss))
     check()
     print("===============")
-# check()
+check()
 
