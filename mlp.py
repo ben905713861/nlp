@@ -32,8 +32,15 @@ model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['sparse_categorical_accuracy'])
 
+
+# 读取模型
+model.load_weights('data/mlp')
+
 # 训练10轮，每轮60张图
 model.fit(train_images, train_labels, batch_size=60, epochs=10)
+
+# 存储
+model.save_weights('data/mlp')
 
 # verbose输出日志等级，0=不开启日志
 test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
