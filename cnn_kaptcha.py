@@ -11,6 +11,8 @@ import uuid
 from concurrent.futures import ProcessPoolExecutor,wait,as_completed
 from _io import open
 import random
+import matplotlib.pyplot as plt
+
 
 # 九宫格除椒盐噪点
 def convFilter(originImg):
@@ -256,7 +258,7 @@ def train():
         layers.Dense(units=256, activation=tf.nn.relu),
         layers.Dropout(0.25),
         # 输出层有10个。分别为0-9的数字，因为是多分类任务，我们选择softmax作为激活函数
-        layers.Dense(units=10, activation=tf.nn.softmax)
+        layers.Dense(units=10, activation=tf.nn.softmax),
     ])
     model.compile(optimizer = keras.optimizers.Adadelta(1),
                   loss = keras.losses.categorical_crossentropy,
@@ -269,7 +271,6 @@ def train():
     model.fit(train_images, train_labels, batch_size=60, epochs=3, validation_data=(test_images, test_labels))
     
     # 存储
-    model.save_weights('data/cnn')
     keras.models.save_model(model, 'data/cnn_kaptcha')
     
     # 测试模型
@@ -295,9 +296,9 @@ def run(imgPath):
     return answer
 
 def test():
-    with open("C:/Users/wuxb/Desktop/kaptcha_cnn/train_answer.json", "r") as f:
+    with open("C:/Users/wuxb/Desktop/kaptcha_cnn/test_answer.json", "r") as f:
         labels = json.load(f)
-    baseDir = "C:/Users/wuxb/Desktop/kaptcha_cnn/train/"
+    baseDir = "C:/Users/wuxb/Desktop/kaptcha_cnn/test/"
     pathDir = os.listdir(baseDir)
     successCount = 0
     errorCount = 0
