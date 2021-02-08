@@ -6,11 +6,11 @@ import json
 import os
 import copy
 import cv2
-import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import uuid
 from concurrent.futures import ProcessPoolExecutor,wait,as_completed
-from numpy import save
+from _io import open
+import random
 
 # 九宫格除椒盐噪点
 def convFilter(originImg):
@@ -65,11 +65,11 @@ def filterNoise(originImg):
     newImg2 = convFilter(newImg)
     newImg3 = convFilter(newImg2)
 #     print(newImg)
-#     plt.subplot(1, 2, 1)
+#     plt.subplot(1, 3, 1)
 #     plt.imshow(newImg, cmap='gray')
-#     plt.subplot(1, 2, 2)
+#     plt.subplot(1, 3, 2)
 #     plt.imshow(newImg2, cmap='gray')
-#     plt.subplot(2, 2, 3)
+#     plt.subplot(1, 3, 3)
 #     plt.imshow(newImg3, cmap='gray')
 #     plt.show()
 #     exit()
@@ -92,6 +92,9 @@ def cutImageWords(originImage):
     x2position = {}
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
+        if x2position.__contains__(x):
+            print("图片小块存在重叠，无法分割")
+            return None
         x2position[x] = (x, y, w, h)
     x2positionSorted = sorted(x2position)
     
@@ -114,7 +117,6 @@ def cutImageWords(originImage):
         else:
             draw = originImage[y:y+h, x:x+w]
             draws.append(draw)
-            
     # 边缘扩充，使得图片等大
     draws2 = []
     fixedHeight = 30
@@ -185,6 +187,16 @@ def getImagesAndLabels(imageDir, labelPath, save=True):
             continue
         decompose_images.extend(result[0])
         decompose_labels.extend(result[1])
+#         if len(result[0]) != len(result[1]):
+#             print(result[1])
+#             plt.imshow(result[0][0], cmap='gray')
+#             plt.show()
+#             plt.imshow(result[0][1], cmap='gray')
+#             plt.show()
+#             plt.imshow(result[0][2], cmap='gray')
+#             plt.show()
+#             plt.imshow(result[0][3], cmap='gray')
+#             plt.show()
     decompose_images = np.array(decompose_images)
     decompose_labels = np.array(decompose_labels)
     return (decompose_images, decompose_labels)
@@ -195,7 +207,7 @@ def prepareTrainImage():
 
 
 def loadPreparedIamge():
-    keys = ["0","1","2","3","4","5","6","7","8",]
+    keys = ["0","1","2","3","4","5","6","7","8","9"]
     baseDir = "C:/Users/wuxb/Desktop/kaptcha_cnn/train_decompose/"
     train_images = []
     train_labels = []
@@ -206,23 +218,31 @@ def loadPreparedIamge():
             img = mpimg.imread(pathDir + imageName)
             train_images.append(img)
             train_labels.append(int(key))
-    train_images = np.array(train_images)
-    train_labels = np.array(train_labels)
+    # 打乱顺序
+    indexes = list(range(len(train_images)))
+    random.shuffle(indexes)
+    train_images2 = []
+    train_labels2 = []
+    for index in indexes:
+        train_images2.append(train_images[index])
+        train_labels2.append(train_labels[index])
+    train_images = np.array(train_images2)
+    train_labels = np.array(train_labels2)
     return (train_images, train_labels)
 
 
 def train():
     (train_images, train_labels) = loadPreparedIamge()
-#     (test_images, test_labels) = getImagesAndLabels("C:/Users/wuxb/Desktop/kaptcha_cnn/test", "C:/Users/wuxb/Desktop/kaptcha_cnn/test_answer.json", save=False)
+    (test_images, test_labels) = getImagesAndLabels("C:/Users/wuxb/Desktop/kaptcha_cnn/test", "C:/Users/wuxb/Desktop/kaptcha_cnn/test_answer.json", save=False)
     train_images = train_images.reshape(-1, 30, 24, 1)
-#     test_images = test_images.reshape(-1, 30, 24, 1)
+    test_images = test_images.reshape(-1, 30, 24, 1)
     train_labels = keras.utils.to_categorical(train_labels, 10)   #将整形数组转化为二元类型矩阵
-#     test_labels = keras.utils.to_categorical(test_labels, 10)
+    test_labels = keras.utils.to_categorical(test_labels, 10)
     
     print(train_images.shape)
     print(train_labels.shape)
-#     print(test_images.shape)
-#     print(test_labels.shape)
+    print(test_images.shape)
+    print(test_labels.shape)
     
     # cnn
     model = keras.Sequential([
@@ -246,21 +266,62 @@ def train():
     model.summary()
     
     # 训练10轮，每轮60张图
-    history = model.fit(train_images, train_labels, batch_size=60, epochs=1)
+    model.fit(train_images, train_labels, batch_size=60, epochs=3, validation_data=(test_images, test_labels))
     
     # 存储
-    # model.save_weights('data/cnn')
+    model.save_weights('data/cnn')
     keras.models.save_model(model, 'data/cnn_kaptcha')
     
     # 测试模型
     # verbose输出日志等级，0=不开启日志
-#     test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
-#     print('Test acc:', test_acc)
+    test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
+    print('Test acc:', test_acc)
+
+
+def run(imgPath):
+    model = keras.models.load_model('data/cnn_kaptcha')
+    img = mpimg.imread(imgPath)
+    img = filterNoise(img)
+    draws = cutImageWords(img)
+    if draws == None:
+        return
+    draws = np.array(draws)
+    test_images = draws.reshape(-1, 30, 24, 1)
+    answerOneHot = model(test_images)
+    answerWords = tf.argmax(answerOneHot, axis=1)
+    answerWords = answerWords.numpy()
+    answerWords = answerWords.astype(np.str)
+    answer = ''.join(answerWords)
+    return answer
+
+def test():
+    with open("C:/Users/wuxb/Desktop/kaptcha_cnn/train_answer.json", "r") as f:
+        labels = json.load(f)
+    baseDir = "C:/Users/wuxb/Desktop/kaptcha_cnn/train/"
+    pathDir = os.listdir(baseDir)
+    successCount = 0
+    errorCount = 0
+    for fileDir in pathDir:
+        answer = run(baseDir + fileDir)
+        if answer == None:
+            continue
+        index = int(fileDir[0: fileDir.rindex(".")])
+        label = labels[index]
+        if answer == label:
+            successCount += 1
+        else:
+            errorCount += 1
+            print(fileDir, answer)
+        total = successCount + errorCount
+        rate = successCount * 1. / total
+        print("total: %d" % total)
+        print("rate: %f" % rate)
 
 
 if __name__ == "__main__":  
 #     prepareTrainImage()
-    train()
+#     train()
+    test()
 
 
 
