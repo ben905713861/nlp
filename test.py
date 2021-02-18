@@ -8,7 +8,27 @@ from concurrent.futures import ProcessPoolExecutor,wait,as_completed
 import time
 import random
 
-a = np.arange(2000)
-a = a.tolist()
-random.shuffle(a)
-print(a[0])
+
+f = open("C:/Users/wuxb/Desktop/identity_CelebA.txt")
+
+id2count = {}
+while True:
+    line = f.readline()
+    if not line:
+        break
+    array = line.split()
+    name = array[1]
+    if not id2count.__contains__(name):
+        id2count[name] = 0
+    id2count[name] += 1
+
+count = 0
+for key, value in id2count.items():
+    if value > 1:
+        count += 1
+        print(key, value)
+
+print("count", count)
+print("mancount", len(id2count))
+
+
