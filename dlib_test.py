@@ -55,7 +55,7 @@ for (key, points) in face_landmarks.items():
 
 
 
-unknown_image = face_recognition.load_image_file('img/obama2.jpg')
+unknown_image = face_recognition.load_image_file('img/obama4.jpg')
 unknown_encoding = face_recognition.face_encodings(unknown_image)
 print(unknown_encoding)
 results = face_recognition.compare_faces(known_encodings, unknown_encoding[0], 0.6)

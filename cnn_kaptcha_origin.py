@@ -12,77 +12,28 @@ from concurrent.futures import ProcessPoolExecutor,wait,as_completed
 import time
 from _io import open
 import random
-from cnn_kaptcha import filterNoise
 import matplotlib.pyplot as plt
-
-
-# 保存处理后的图片用于以后训练
-def saveCuttedImage(img, originIndex):
-    baseDir = "C:/Users/Administrator/Desktop/kaptcha_cnn/train_nocut/"
-    filePath = baseDir + str(originIndex) + ".png"
-    cv2.imwrite(filePath, img * 255)
-
-
-# 子进程中执行图片处理
-def excuteImageFilter(imageDir, fileDir, labels, save):
-    img = mpimg.imread(imageDir + "/" + fileDir)
-    img = filterNoise(img)
-    index = int(fileDir[0: fileDir.rindex(".")])
-    label = labels[index]
-    if save:
-        saveCuttedImage(img, index)
-    print("初始图处理：%s" % fileDir)
-    return (img, label)
-
-
-# 获得图片集
-def getImagesAndLabels(imageDir, labelPath, save=True):
-    with open(labelPath, "r") as f:
-        originLabels = json.load(f)
-    
-    images = []
-    labels = []
-    pathDir =  os.listdir(imageDir)
-    executor = ProcessPoolExecutor(max_workers=7)
-    
-    childProcesses = []
-    for fileDir in pathDir:
-        childProcess = executor.submit(excuteImageFilter, imageDir, fileDir, originLabels, save)
-        childProcesses.append(childProcess)
-        ################################### TODO
-#         break
-    for childProcess in as_completed(childProcesses):
-        result = childProcess.result()
-        images.extend(result[0])
-        labels.append(result[1])
-#         plt.imshow(images, cmap='gray')
-#         plt.show()
-        
-    images = np.array(images)
-    labels = np.array(labels)
-    return (images, labels)
-
-
-def prepareTrainImage():
-    getImagesAndLabels("C:/Users/Administrator/Desktop/kaptcha_cnn/train", "C:/Users/Administrator/Desktop/kaptcha_cnn/train_answer.json", save=True)
-
 
 def loadPreparedIamge():
     labelPath = "C:/Users/Administrator/Desktop/kaptcha_cnn/train_answer.json"
     with open(labelPath, "r") as f:
         origin_labels = json.load(f)
     
-    baseDir = "C:/Users/Administrator/Desktop/kaptcha_cnn/train_nocut/"
+    baseDir = "C:/Users/Administrator/Desktop/kaptcha_cnn/train/"
     train_images = []
     train_labels = []
     pathDir =  os.listdir(baseDir)
     for fileDir in pathDir:
         img = mpimg.imread(baseDir + fileDir)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         train_images.append(img)
         index = int(fileDir[0: fileDir.rindex(".")])
         label = origin_labels[index]
         train_labels.append(label)
         ############################################
+#         plt.imshow(img, cmap='gray')
+#         plt.show()
+#         print(img)
 #         break
     
     train_images = np.array(train_images)
@@ -90,9 +41,33 @@ def loadPreparedIamge():
     return (train_images, train_labels)
 
 
+def loadTestIamge():
+    labelPath = "C:/Users/Administrator/Desktop/kaptcha_cnn/test_answer.json"
+    with open(labelPath, "r") as f:
+        origin_labels = json.load(f)
+    
+    baseDir = "C:/Users/Administrator/Desktop/kaptcha_cnn/test/"
+    test_images = []
+    test_labels = []
+    pathDir =  os.listdir(baseDir)
+    for fileDir in pathDir:
+        img = mpimg.imread(baseDir + fileDir)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        test_images.append(img)
+        index = int(fileDir[0: fileDir.rindex(".")])
+        label = origin_labels[index]
+        test_labels.append(label)
+        ############################################
+#         break
+    
+    test_images = np.array(test_images)
+    test_labels = np.array(test_labels)
+    return (test_images, test_labels)
+
+
 def train():
     (train_images, train_labels) = loadPreparedIamge()
-    (test_images, test_labels) = getImagesAndLabels("C:/Users/Administrator/Desktop/kaptcha_cnn/test", "C:/Users/Administrator/Desktop/kaptcha_cnn/test_answer.json", save=False)
+    (test_images, test_labels) = loadTestIamge()
     train_images = train_images.reshape(-1, 160, 40, 1)
     test_images = test_images.reshape(-1, 160, 40, 1)
     
@@ -116,10 +91,12 @@ def train():
         layers.MaxPooling2D(pool_size=(2, 2,)),
         layers.Conv2D(filters=64, kernel_size=(3, 3,), activation=tf.nn.relu),
         layers.MaxPooling2D(pool_size=(2, 2,)),
+        layers.Conv2D(filters=64, kernel_size=(3, 3,), activation=tf.nn.relu),
+        layers.MaxPooling2D(pool_size=(2, 2,)),
         # 输入层
         layers.Flatten(),
         # units该层的神经元数; activation激活函数
-        layers.Dense(units=128, activation=tf.nn.relu),
+        layers.Dense(units=256, activation=tf.nn.relu),
         layers.Dropout(0.25),
         # 输出层有4*10个。每层分别为0-9的数字，因为是多分类任务，我们选择softmax作为激活函数
         layers.Dense(units=4*10),
@@ -138,18 +115,16 @@ def train():
     model.fit(train_images, train_labels, batch_size=60, epochs=10, validation_data=(test_images, test_labels))
     
     # 存储
-    keras.models.save_model(model, 'data/cnn_kaptcha_nocut')
+    keras.models.save_model(model, 'data/cnn_kaptcha_origin')
     
-    # 测试模型
-    # verbose输出日志等级，0=不开启日志
     test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
     print('Test acc:', test_acc)
 
 
 def run(imgPath):
-    model = keras.models.load_model('data/cnn_kaptcha_nocut')
+    model = keras.models.load_model('data/cnn_kaptcha_origin')
     img = mpimg.imread(imgPath)
-    img = filterNoise(img)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     test_images = img.reshape(-1, 160, 40, 1)
     answerOneHot = model(test_images)[0]
     answerWords = tf.argmax(answerOneHot, axis=1)
@@ -182,9 +157,7 @@ def test():
 
 
 if __name__ == "__main__":
-#     prepareTrainImage()
-    train()
-#     test()
-
+#     train()
+    test()
 
 
